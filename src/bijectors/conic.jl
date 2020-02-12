@@ -18,10 +18,16 @@ function (icb::Inversed{<:Conic})(y)
     # FIXME: this might be not be in the domain of the bijectors
     x₀ = randn(length(y))
 
-    # Do 10 steps
-    x = x₀ - Diagonal(Bijectors.jacobian(cb, x₀)) \ (cb(x₀) - y)
-    for i = 1:9
-        x = x - Diagonal(Bijectors.jacobian(cb, x)) \ (cb(x) - y)
+    max_iter = 100
+    iters = 1
+    x = x₀
+    y_new = cb(x₀)
+    # Terminate if approximation is "good enough"
+    while (iters < max_iter) && (norm(y_new - y, 2) ≥ 1e-6)
+        x = x - Diagonal(Bijectors.jacobian(cb, x)) \ (y_new - y)
+
+        y_new = cb(x)
+        iters += 1
     end
 
     return x

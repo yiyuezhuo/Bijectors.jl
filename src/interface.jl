@@ -152,6 +152,7 @@ include("bijectors/shift.jl")
 include("bijectors/simplex.jl")
 include("bijectors/truncated.jl")
 include("bijectors/distribution_bijector.jl")
+include("bijectors/conic.jl")
 
 # Normalizing flow related
 include("bijectors/planar_layer.jl")

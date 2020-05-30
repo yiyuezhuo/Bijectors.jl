@@ -21,7 +21,7 @@ function _simplex_bijector!(y, x::AbstractVector, ::SimplexBijector{1, proj}) wh
     @assert K > 1 "x needs to be of length greater than 1"
     T = eltype(x)
     ϵ = _eps(T)
-    sum_tmp = zero(T)
+    sum_tmp = _zero(T)
     @inbounds z = x[1] * (one(T) - 2ϵ) + ϵ # z ∈ [ϵ, 1-ϵ]
     @inbounds y[1] = StatsFuns.logit(z) + log(T(K - 1))
     @inbounds @simd for k in 2:(K - 1)
@@ -33,7 +33,7 @@ function _simplex_bijector!(y, x::AbstractVector, ::SimplexBijector{1, proj}) wh
     end
     @inbounds sum_tmp += x[K - 1]
     @inbounds if proj
-        y[K] = zero(T)
+        y[K] = _zero(T)
     else
         y[K] = one(T) - sum_tmp - x[K]
     end
@@ -64,7 +64,7 @@ function _simplex_bijector!(Y, X::AbstractMatrix, ::SimplexBijector{1, proj}) wh
     T = eltype(X)
     ϵ = _eps(T)
     @inbounds @simd for n in 1:size(X, 2)
-        sum_tmp = zero(T)
+        sum_tmp = _zero(T)
         z = X[1, n] * (one(T) - 2ϵ) + ϵ
         Y[1, n] = StatsFuns.logit(z) + log(T(K - 1))
         for k in 2:(K - 1)
@@ -74,7 +74,7 @@ function _simplex_bijector!(Y, X::AbstractMatrix, ::SimplexBijector{1, proj}) wh
         end
         sum_tmp += X[K-1, n]
         if proj
-            Y[K, n] = zero(T)
+            Y[K, n] = _zero(T)
         else
             Y[K, n] = one(T) - sum_tmp - X[K, n]
         end
@@ -102,7 +102,7 @@ function _simplex_inv_bijector!(x, y::AbstractVector, b::SimplexBijector{1, proj
     ϵ = _eps(T)
     @inbounds z = StatsFuns.logistic(y[1] - log(T(K - 1)))
     @inbounds x[1] = _clamp((z - ϵ) / (one(T) - 2ϵ), 0, 1)
-    sum_tmp = zero(T)
+    sum_tmp = _zero(T)
     @inbounds @simd for k = 2:(K - 1)
         z = StatsFuns.logistic(y[k] - log(T(K - k)))
         sum_tmp += x[k-1]
@@ -144,7 +144,7 @@ function _simplex_inv_bijector!(X, Y::AbstractMatrix, b::SimplexBijector{1, proj
     T = eltype(Y)
     ϵ = _eps(T)
     @inbounds @simd for n in 1:size(X, 2)
-        sum_tmp, z = zero(T), StatsFuns.logistic(Y[1, n] - log(T(K - 1)))
+        sum_tmp, z = _zero(T), StatsFuns.logistic(Y[1, n] - log(T(K - 1)))
         X[1, n] = _clamp((z - ϵ) / (one(T) - 2ϵ), 0, 1)
         for k in 2:(K - 1)
             z = StatsFuns.logistic(Y[k, n] - log(T(K - k)))
@@ -164,11 +164,11 @@ end
 
 function logabsdetjac(b::SimplexBijector{1}, x::AbstractVector{T}) where {T}
     ϵ = _eps(T)
-    lp = zero(T)
+    lp = _zero(T)
     
     K = length(x)
 
-    sum_tmp = zero(eltype(x))
+    sum_tmp = _zero(eltype(x))
     @inbounds z = x[1]
     lp += log(max(z, ϵ)) + log(max(one(T) - z, ϵ))
     @inbounds @simd for k in 2:(K - 1)
@@ -184,8 +184,8 @@ function simplex_logabsdetjac_gradient(x::AbstractVector)
     ϵ = _eps(T)    
     K = length(x)
     g = similar(x)
-    g .= 0
-    sum_tmp = zero(eltype(x))
+    g .= _zero(T)
+    sum_tmp = _zero(eltype(x))
     @inbounds z = x[1]
     #lp += log(z + ϵ) + log((one(T) + ϵ) - z)
     c1 = z >= ϵ
@@ -216,11 +216,11 @@ end
 function logabsdetjac(b::SimplexBijector{1}, x::AbstractMatrix{T}) where {T}
     ϵ = _eps(T)
     nlp = similar(x, T, size(x, 2))
-    nlp .= zero(T)
+    nlp .= _zero(T)
 
     K = size(x, 1)
     for col in 1:size(x, 2)
-        sum_tmp = zero(eltype(x))
+        sum_tmp = _zero(eltype(x))
         z = x[1,col]
         nlp[col] -= log(max(z, ϵ)) + log(max(one(T) - z, ϵ))
         for k in 2:(K - 1)
@@ -242,9 +242,9 @@ function simplex_logabsdetjac_gradient(x::AbstractMatrix)
     ϵ = _eps(T)
     K = size(x, 1)
     g = similar(x)
-    g .= 0
+    g .= _zero(T)
     @inbounds @simd for col in 1:size(x, 2)
-        sum_tmp = zero(eltype(x))
+        sum_tmp = _zero(eltype(x))
         z = x[1,col]
         #lp += log(z + ϵ) + log((one(T) + ϵ) - z)
         c1 = z >= ϵ
@@ -281,9 +281,9 @@ function simplex_link_jacobian(
     K = length(x)
     @assert K > 1 "x needs to be of length greater than 1"
     dydxt = similar(x, length(x), length(x))
-    @inbounds dydxt .= 0
+    @inbounds dydxt .= _zero(T)
     ϵ = _eps(T)
-    sum_tmp = zero(T)
+    sum_tmp = _zero(T)
 
     @inbounds z = x[1] * (one(T) - 2ϵ) + ϵ # z ∈ [ϵ, 1-ϵ]
     @inbounds dydxt[1,1] = (1/z + 1/(1-z)) * (one(T) - 2ϵ)
@@ -322,7 +322,7 @@ function add_simplex_link_adjoint!(
     K = length(x)
     @assert K > 1 "x needs to be of length greater than 1"
     ϵ = _eps(T)
-    sum_tmp = zero(T)
+    sum_tmp = _zero(T)
     @inbounds z = x[1] * (one(T) - 2ϵ) + ϵ # z ∈ [ϵ, 1-ϵ]
     @inbounds inΔ[1] += outΔ[1] * (1/z + 1/(1-z)) * (one(T) - 2ϵ)
     @inbounds @simd for k in 2:(K - 1)
@@ -352,7 +352,7 @@ function add_simplex_link_adjoint!(
     @assert K > 1 "x needs to be of length greater than 1"
     ϵ = _eps(T)
     @inbounds for col in 1:size(x, 2)
-        sum_tmp = zero(T)
+        sum_tmp = _zero(T)
         z = x[1,col] * (one(T) - 2ϵ) + ϵ # z ∈ [ϵ, 1-ϵ]
         inΔ[1,col] += outΔ[1,col] * (1/z + 1/(1-z)) * (one(T) - 2ϵ)
         @simd for k in 2:(K - 1)
@@ -382,7 +382,7 @@ function simplex_invlink_jacobian(
     K = length(y)
     @assert K > 1 "x needs to be of length greater than 1"
     dxdy = similar(y, length(y), length(y))
-    @inbounds dxdy .= 0
+    @inbounds dxdy .= _zero(T)
 
     ϵ = _eps(T)
     @inbounds z = StatsFuns.logistic(y[1] - log(T(K - 1)))
@@ -391,7 +391,7 @@ function simplex_invlink_jacobian(
     @inbounds if unclamped_x == clamped_x
         dxdy[1,1] = z * (1 - z) / (one(T) - 2ϵ)
     end
-    sum_tmp = zero(T)
+    sum_tmp = _zero(T)
     @inbounds for k = 2:(K - 1)
         z = StatsFuns.logistic(y[k] - log(T(K - k)))
         sum_tmp += clamped_x
@@ -445,7 +445,7 @@ function add_simplex_invlink_adjoint!(
     @assert K > 1 "x needs to be of length greater than 1"
     dxdy = similar(y, length(y), length(y))
 
-    @inbounds dxdy .= 0
+    @inbounds dxdy .= _zero(T)
     ϵ = _eps(T)
     @inbounds z = StatsFuns.logistic(y[1] - log(T(K - 1)))
     unclamped_x = (z - ϵ) / (one(T) - 2ϵ)
@@ -454,7 +454,7 @@ function add_simplex_invlink_adjoint!(
         dxdy[1,1] = z * (1 - z) / (one(T) - 2ϵ)
         inΔ[1] += outΔ[1] * dxdy[1,1]
     end
-    sum_tmp = zero(T)
+    sum_tmp = _zero(T)
     @inbounds for k = 2:(K - 1)
         z = StatsFuns.logistic(y[k] - log(T(K - k)))
         sum_tmp += clamped_x
@@ -503,7 +503,7 @@ function add_simplex_invlink_adjoint!(
     dxdy = similar(y, size(y,1), size(y,1))
 
     @inbounds for col in 1:size(y,2)
-        dxdy .= 0
+        dxdy .= _zero(T)
         ϵ = _eps(T)
         z = StatsFuns.logistic(y[1,col] - log(T(K - 1)))
         unclamped_x = (z - ϵ) / (one(T) - 2ϵ)
@@ -512,7 +512,7 @@ function add_simplex_invlink_adjoint!(
             dxdy[1,1] = z * (1 - z) / (one(T) - 2ϵ)
             inΔ[1,col] += outΔ[1,col] * dxdy[1,1]
         end
-        sum_tmp = zero(T)
+        sum_tmp = _zero(T)
         for k = 2:(K - 1)
             z = StatsFuns.logistic(y[k,col] - log(T(K - k)))
             sum_tmp += clamped_x

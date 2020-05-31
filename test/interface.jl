@@ -70,7 +70,7 @@ end
             # single sample
             y = @inferred rand(td)
             x = @inferred inv(td.transform)(y)
-            @test y == @inferred td.transform(x)
+            @test y ≈ @inferred td.transform(x)
             @test @inferred(logpdf(td, y)) ≈ @inferred(logpdf_with_trans(dist, x, true))
 
             # logpdf_with_jac
@@ -403,7 +403,7 @@ end
             y = rand(td)
             x = inv(td.transform)(y)
             @test inv(td.transform)(param(y)) isa TrackedArray
-            @test y == td.transform(x)
+            @test y ≈ td.transform(x)
             @test td.transform(param(x)) isa TrackedArray
             @test logpdf(td, y) ≈ logpdf_with_trans(dist, x, true)
 
@@ -559,16 +559,16 @@ end
     @test sb1(param([x, x, y, y])) isa TrackedArray
 
     @test sb1([x, x, y, y]) == res1.rv
-    @test isapprox(logabsdetjac(sb1, [x, x, y, y]), 0, atol = 1e-6)
-    @test isapprox(res1.logabsdetjac, 0, atol = 1e-6)
+    @test isapprox(logabsdetjac(sb1, [x, x, y, y]), 0, atol=1e-15)
+    @test isapprox(res1.logabsdetjac, 0, atol=1e-15)
 
     sb2 = Stacked([b, b, inv(b), inv(b)])        # <= Array
     res2 = forward(sb2, [x, x, y, y])
     @test sb2(param([x, x, y, y])) isa TrackedArray
 
     @test sb2([x, x, y, y]) == res2.rv
-    @test logabsdetjac(sb2, [x, x, y, y]) ≈ 0.0
-    @test res2.logabsdetjac ≈ 0.0
+    @test isapprox(logabsdetjac(sb2, [x, x, y, y]), 0.0, atol=1e-15)
+    @test isapprox(res2.logabsdetjac, 0.0, atol=1e-15)
 
     # `logabsdetjac` with AD
     b = MyADBijector(d)
@@ -579,16 +579,16 @@ end
     @test sb1(param([x, x, y, y])) isa TrackedArray
 
     @test sb1([x, x, y, y]) == res1.rv
-    @test logabsdetjac(sb1, [x, x, y, y]) ≈ 0.0
-    @test res1.logabsdetjac ≈ 0.0
+    @test isapprox(logabsdetjac(sb1, [x, x, y, y]), 0.0, atol=1e-15)
+    @test isapprox(res1.logabsdetjac, 0.0, atol=1e-15)
 
     sb2 = Stacked([b, b, inv(b), inv(b)])        # <= Array
     res2 = forward(sb2, [x, x, y, y])
     @test sb2(param([x, x, y, y])) isa TrackedArray
 
     @test sb2([x, x, y, y]) == res2.rv
-    @test logabsdetjac(sb2, [x, x, y, y]) ≈ 0.0
-    @test res2.logabsdetjac ≈ 0.0
+    @test isapprox(logabsdetjac(sb2, [x, x, y, y]), 0.0, atol=1e-15)
+    @test isapprox(res2.logabsdetjac, 0.0, atol=1e-15)
 
     # value-test
     x = ones(3)

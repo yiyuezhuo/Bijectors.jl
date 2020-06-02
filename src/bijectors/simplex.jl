@@ -23,13 +23,13 @@ function _simplex_bijector!(y, x::AbstractVector, ::SimplexBijector{1, proj}) wh
     ϵ = _eps(T)
     sum_tmp = _zero(T)
     @inbounds z = x[1] * (one(T) - 2ϵ) + ϵ # z ∈ [ϵ, 1-ϵ]
-    @inbounds y[1] = StatsFuns.logit(z) + log(T(K - 1))
+    @inbounds y[1] = StatsFuns.logit(_clamp(z, 0, 1)) + log(T(K - 1))
     @inbounds @simd for k in 2:(K - 1)
         sum_tmp += x[k - 1]
         # z ∈ [ϵ, 1-ϵ]
         # x[k] = 0 && sum_tmp = 1 -> z ≈ 1
         z = (x[k] + ϵ)*(one(T) - 2ϵ)/((one(T) + ϵ) - sum_tmp)
-        y[k] = StatsFuns.logit(z) + log(T(K - k))
+        y[k] = StatsFuns.logit(_clamp(z, 0, 1)) + log(T(K - k))
     end
     @inbounds sum_tmp += x[K - 1]
     @inbounds if proj
@@ -66,11 +66,11 @@ function _simplex_bijector!(Y, X::AbstractMatrix, ::SimplexBijector{1, proj}) wh
     @inbounds @simd for n in 1:size(X, 2)
         sum_tmp = _zero(T)
         z = X[1, n] * (one(T) - 2ϵ) + ϵ
-        Y[1, n] = StatsFuns.logit(z) + log(T(K - 1))
+        Y[1, n] = StatsFuns.logit(_clamp(z, 0, 1)) + log(T(K - 1))
         for k in 2:(K - 1)
             sum_tmp += X[k - 1, n]
-            z = (X[k, n] + ϵ)*(one(T) - 2ϵ)/((one(T) + ϵ) - sum_tmp)
-            Y[k, n] = StatsFuns.logit(z) + log(T(K - k))
+            z = (X[k, n] + ϵ)*(one(T) - 2ϵ)/max((one(T) + ϵ) - sum_tmp, ϵ)
+            Y[k, n] = StatsFuns.logit(_clamp(z, 0, 1)) + log(T(K - k))
         end
         sum_tmp += X[K-1, n]
         if proj

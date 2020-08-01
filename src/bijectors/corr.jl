@@ -38,8 +38,21 @@ end
 
 function inv_link_w_lkj(y)
     K = size(y, 1)
+    ax = 1:K
+    ax_roll = [ax[end]; ax[1:end-1]]
+    firstrow1 = [ifelse(i==1, 1, 0) for i in 1:K, j in 1:K]
+
+    y = y - LowerTriangular(y)
 
     z = tanh.(y)
+
+    w1 = 0.5 * log.(1 .- z.^2)
+    w2 = exp.(cumsum(w1, dims=1))
+    w3 = w2[ax_roll, :] + firstrow1
+    w = w3 .* z
+
+    #=
+    # good-looking iteration based code, but AD doesn't like :(
     w = similar(z)
     
     w[1,1] = 1
@@ -61,6 +74,7 @@ function inv_link_w_lkj(y)
             w[i, j] = w[i, j] * z[i, j]
         end
     end
+    =#
     
     return w
 end
@@ -72,8 +86,16 @@ end
 
 function link_w_lkj(w)
     K = size(w, 1)
-    z = zero(w)
     
+    #=
+    log(z[1, j]) = log(w[1, j])
+    log(z[i, j]) = log(w[i, j]) - log(w[i-1, j]) + log(z[i-1, j]) - 0.5 * log(1 - z[i-1, j]^2)
+    =#
+
+    # I guess this link function is not required to be differentiable (while it's differentiable for ForwardDiff)
+    
+    z = zero(w)
+
     for j=2:K
         z[1, j] = w[1, j]
     end

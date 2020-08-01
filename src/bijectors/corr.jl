@@ -40,15 +40,15 @@ function inv_link_w_lkj(y)
     K = size(y, 1)
     ax = 1:K
     ax_roll = [ax[end]; ax[1:end-1]]
-    firstrow1 = [ifelse(i==1, 1, 0) for i in 1:K, j in 1:K]
+    firstrow1 = [ifelse(i==1, 1, 0) for i in 1:K]
 
     y = y - LowerTriangular(y)
 
-    z = tanh.(y)
+    z = tanh.(y) + I
 
     w1 = 0.5 * log.(1 .- z.^2)
     w2 = exp.(cumsum(w1, dims=1))
-    w3 = w2[ax_roll, :] + firstrow1
+    w3 = w2[ax_roll, :] .+ firstrow1
     w = w3 .* z
 
     #=

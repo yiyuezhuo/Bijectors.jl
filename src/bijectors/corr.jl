@@ -44,9 +44,9 @@ function inv_link_w_lkj(y)
 
     y = y - LowerTriangular(y)
 
-    z = tanh.(y) + I
+    z = tanh.(y) + I # try to use exp(log(0)) = 0, but AD will stuck on NaN.
 
-    w1 = 0.5 * log.(1 .- z.^2)
+    w1 = 0.5 * log.(max.(1 .- z.^2, 1e-6))
     w2 = exp.(cumsum(w1, dims=1))
     w3 = w2[ax_roll, :] .+ firstrow1
     w = w3 .* z
@@ -104,7 +104,7 @@ function link_w_lkj(w)
         z[i, j] = w[i, j] / w[i-1, j] * z[i-1, j] / sqrt(1 - z[i-1, j]^2)
     end
     
-    y = atanh.(z)
+    y = atanh.(clamp.(z, -1, 1))
     return y
 end
 

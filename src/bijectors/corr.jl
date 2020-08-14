@@ -13,7 +13,32 @@ end
 (b::CorrBijector)(X::AbstractArray{<:AbstractMatrix{<:Real}}) = map(b, X)
 
 function (ib::Inverse{<:CorrBijector})(y::AbstractMatrix{<:Real})
-    w = inv_link_w_lkj(y)
+    @assert size(y, 1) == size(y, 2)
+    K = size(y, 1)
+
+    z = tanh.(y)
+    w = similar(z)
+    
+    w[1,1] = 1
+    @inbounds for j in 1:K
+        w[1, j] = 1
+    end
+
+    @inbounds for j in 1:K
+        for i in j+1:K
+            w[i, j] = 0
+        end
+        for i in 2:j
+            w[i, j] = w[i-1, j] * sqrt(1 - z[i-1, j]^2)
+        end
+    end
+
+    @inbounds for j in 2:K
+        for i in 1:j-1
+            w[i, j] = w[i, j] * z[i, j]
+        end
+    end
+    
     return w' * w
 end
 (ib::Inverse{<:CorrBijector})(Y::AbstractArray{<:AbstractMatrix{<:Real}}) = map(ib, Y)
@@ -44,36 +69,6 @@ logabsdetjac(b::CorrBijector, X::AbstractArray{<:AbstractMatrix{<:Real}}) = mapv
     logabsdetjac(b, x)
 end
 
-
-function inv_link_w_lkj(y)
-    @assert size(y, 1) == size(y, 2)
-    K = size(y, 1)
-
-    z = tanh.(y)
-    w = similar(z)
-    
-    w[1,1] = 1
-    @inbounds for j in 1:K
-        w[1, j] = 1
-    end
-
-    @inbounds for j in 1:K
-        for i in j+1:K
-            w[i, j] = 0
-        end
-        for i in 2:j
-            w[i, j] = w[i-1, j] * sqrt(1 - z[i-1, j]^2)
-        end
-    end
-
-    @inbounds for j in 2:K
-        for i in 1:j-1
-            w[i, j] = w[i, j] * z[i, j]
-        end
-    end
-    
-    return w
-end
 
 function link_w_lkj(w)
     @assert size(w, 1) == size(w, 2)

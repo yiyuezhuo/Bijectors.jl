@@ -194,7 +194,7 @@ end
     end
 end
 
-@adjoint function inv_link_w_lkj(y)
+@adjoint function (::Inverse{<:CorrBijector})(y)
     @assert size(y, 1) == size(y, 2)
     K = size(y, 1)
 
@@ -223,8 +223,10 @@ end
         end
     end
 
-    return w, Δw -> begin
-        @assert size(Δw, 1) == size(Δw, 2)
+    return w' * w, ΔA -> begin # A = w' w
+        @assert size(ΔA, 1) == size(ΔA, 2)
+
+        Δw = 2 * ΔA * w'
         Δz = zero(Δw)
         Δw1 = zero(Δw)
         @inbounds for j=2:K, i=1:j-1

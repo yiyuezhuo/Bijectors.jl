@@ -441,8 +441,8 @@ lower(A::TrackedMatrix) = track(lower, A)
     return lower(Ad), Δ -> (lower(Δ),)
 end
 
-inv_link_w_lkj(y::TrackedMatrix) = track(inv_link_w_lkj, y)
-@grad function inv_link_w_lkj(y_tracked)
+(ib::Inverse{<:CorrBijector})(y::TrackedMatrix) = track(ib, y)
+@grad function (ib::Inverse{<:CorrBijector})(y_tracked)
     y = data(y_tracked)
 
     @assert size(y, 1) == size(y, 2)
@@ -473,8 +473,10 @@ inv_link_w_lkj(y::TrackedMatrix) = track(inv_link_w_lkj, y)
         end
     end
 
-    return w, Δw -> begin
-        @assert size(Δw, 1) == size(Δw, 2)
+    return w' * w, ΔA -> begin # A = w' w
+        @assert size(ΔA, 1) == size(ΔA, 2)
+
+        Δw = 2 * ΔA * w'
         Δz = zero(Δw)
         Δw1 = zero(Δw)
         @inbounds for j=2:K, i=1:j-1
